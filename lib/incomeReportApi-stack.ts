@@ -44,8 +44,9 @@ export class IncomeReportApiStack extends cdk.Stack {
 
 
     const incomeReportHandlerResource = api.root.addResource("lambda1");
+    const filePolerHandlerResource = api.root.addResource("lambda2");
     incomeReportHandlerResource.addMethod("GET", incomeReportHandlerIntegration);
-    incomeReportHandlerResource.addMethod("POST", filePollerHandlerIntegration);
+    filePolerHandlerResource.addMethod("GET", filePollerHandlerIntegration);
     
   }
 }
