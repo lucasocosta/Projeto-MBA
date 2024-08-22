@@ -1,84 +1,85 @@
 import {
-  APIGatewayProxyEvent,
-  APIGatewayProxyResult,
   Context,
+  SNSEvent,
 } from "aws-lambda";
 import S3 = require("aws-sdk/clients/s3");
 
-const bucketName = process.env.BUCKET_NAME!;
-const htmlToPdfBucket = process.env.BUCKET_NAME_HTML_TO_PDF!;
+const bucketName = process.env.BUCKET_NAME || "";
+const htmlToPdfBucket = process.env.BUCKET_NAME_HTML_TO_PDF || "";
+
+if (!bucketName || !htmlToPdfBucket) {
+  throw new Error("Environment variables BUCKET_NAME or BUCKET_NAME_HTML_TO_PDF are not set");
+}
+
 const s3 = new S3();
 
 export async function handler(
-  event: APIGatewayProxyEvent,
+  event: SNSEvent,
   context: Context
-): Promise<APIGatewayProxyResult> {
+): Promise<void> {
   const lambdaRequestId = context.awsRequestId;
-  const apiRequestId = event.requestContext.requestId;
-  const documentId = event.queryStringParameters?.document_id;
-  const year = event.queryStringParameters?.year;
-
+  const apiRequestId = event.Records[0].Sns.MessageId;
   console.log(
-    `API Gateway RequestId ${apiRequestId} - Lambda RequestId ${lambdaRequestId}`
+    `SNS RequestId ${apiRequestId} - Lambda RequestId ${lambdaRequestId}`
   );
 
-  console.log(
-    `API BUCKET ${bucketName} - Lambda RequestId ${lambdaRequestId}`
-  );
+  for (const record of event.Records) {
+    console.log(`SNS MessageId ${record.Sns.MessageId}`);
+    console.log(`SNS Message ${record.Sns.Message}`);
+    await copyFile(JSON.parse(record.Sns.Message));
+  }
+}
 
-  if (event.resource === "/lambda2") {
-    console.log("GET /lambda2");
+async function copyFile(params: any) {
+  let data;
 
-    const sourceKey = `${documentId}-${year}.pdf`;
-    const destinationKey = `${documentId}-${year}.pdf`;
-
+  // Check if the data is already an object, otherwise parse it
+  if (typeof params?.data === 'string') {
     try {
-      // Verifica se o arquivo existe no bucket destino
-      await s3
-        .headObject({
-          Bucket: bucketName,
-          Key: destinationKey,
-        })
-        .promise();
-
-      console.log(`File already exists in destination bucket: ${bucketName}`);
-    } catch (headError) {
-      if ((headError as any).code === 'NotFound') {
-        // Se o arquivo não existe, faz a cópia do bucket htmlToPdf para o bucket destino
-        try {
-          await s3
-            .copyObject({
-              CopySource: `${htmlToPdfBucket}/${sourceKey}`,
-              Bucket: bucketName,
-              Key: destinationKey,
-            })
-            .promise();
-
-          console.log(`File copied from ${htmlToPdfBucket} to ${bucketName}`);
-        } catch (copyError) {
-          console.error("Error copying file:", copyError);
-          return {
-            statusCode: 500,
-            body: JSON.stringify({ message: "Error copying file" }),
-          };
-        }
-      } else {
-        console.error("Error checking file existence:", headError);
-        return {
-          statusCode: 500,
-          body: JSON.stringify({ message: "Error checking file existence" }),
-        };
-      }
+      data = JSON.parse(params.data);
+    } catch (parseError) {
+      console.error('Error parsing data field:', parseError);
+      return;
     }
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify('File check and copy operation completed.'),
-    };
+  } else {
+    data = params.data;
   }
 
-  return {
-    statusCode: 400,
-    body: JSON.stringify({ message: "Invalid resource path" }),
-  };
+  const documentId = data?.documentId;
+  const year = data?.year;
+
+  if (!documentId || !year) {
+    console.error('Missing documentId or year in the parameters');
+    return;
+  }
+
+  const sourceKey = `${documentId}-${year}.pdf`;
+  const destinationKey = `${documentId}-${year}.pdf`;
+
+  console.log(`Copying file ${documentId}-${year}.pdf from ${sourceKey} to ${destinationKey}`);
+
+  try {
+    await s3.headObject({
+      Bucket: bucketName,
+      Key: destinationKey,
+    }).promise();
+
+    console.log(`File already exists in destination bucket: ${bucketName}`);
+  } catch (headError: any) {
+    if (headError.code === 'NotFound') {
+      try {
+        await s3.copyObject({
+          CopySource: `${htmlToPdfBucket}/${sourceKey}`,
+          Bucket: bucketName,
+          Key: destinationKey,
+        }).promise();
+
+        console.log(`File copied from ${htmlToPdfBucket} to ${bucketName}`);
+      } catch (copyError) {
+        console.error(`Error copying file from ${htmlToPdfBucket} to ${bucketName} for documentId ${documentId}, year ${year}:`, copyError);
+      }
+    } else {
+      console.error(`Error checking file existence in bucket ${bucketName} for key ${destinationKey}:`, headError);
+    }
+  }
 }

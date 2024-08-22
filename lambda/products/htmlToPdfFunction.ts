@@ -3,11 +3,13 @@ import {
     APIGatewayProxyResult,
     Context,
 } from "aws-lambda";
-import { S3 } from 'aws-sdk';
+import { S3, SNS } from 'aws-sdk';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 const htmlToPdfBucket = process.env.BUCKET_NAME_HTML_TO_PDF!;
+const filesEventsTopicArn = process.env.FILES_EVENTS_TOPIC_ARN!;
 const s3 = new S3();
+const snsClient = new SNS()
 
 export interface Content {
     documentId: number;
@@ -48,6 +50,22 @@ export async function handler(
 
         try {
             await createPdfAndUploadToS3({ documentId, year, balance }, htmlToPdfBucket, destinationKey);
+
+            const envelope = {
+                eventType: 'FILE_CREATED',
+                data: JSON.stringify({ documentId, year })
+             }
+          
+            await snsClient.publish({
+                TopicArn: filesEventsTopicArn,
+                Message: JSON.stringify(envelope),
+                MessageAttributes: {
+                   eventType: {
+                      DataType: "String",
+                      StringValue: 'FILE_CREATED'
+                   }
+                }
+             }).promise()
 
             return {
                 statusCode: 200,

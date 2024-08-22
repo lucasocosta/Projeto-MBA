@@ -5,6 +5,8 @@ import { Construct } from "constructs";
 import * as ssm from "aws-cdk-lib/aws-ssm";
 import * as s3 from "aws-cdk-lib/aws-s3"
 import * as iam from "aws-cdk-lib/aws-iam"
+import * as sns from "aws-cdk-lib/aws-sns"
+import * as subs from "aws-cdk-lib/aws-sns-subscriptions"
 
 export class IncomeReportAppStack extends cdk.Stack {
   readonly filePollerHandler: lambdaNodeJS.NodejsFunction;
@@ -17,6 +19,11 @@ export class IncomeReportAppStack extends cdk.Stack {
 
     const incomeReportLayerArn = ssm.StringParameter.valueForStringParameter(this, "incomeReportLayerVersionArn");
     const incomeReportLayer = lambda.LayerVersion.fromLayerVersionArn(this, "incomeReportLayerVersionArn", incomeReportLayerArn);
+
+    const filesTopic = new sns.Topic(this, "FilesEventsTopic", {
+      displayName: "Files events topic",
+      topicName: "files-events"
+   })
 
     // Criando o bucket S3
     const incomeReportBucket = new s3.Bucket(this, "incomeReportBucket", {
@@ -90,11 +97,13 @@ export class IncomeReportAppStack extends cdk.Stack {
         environment: {
           BUCKET_NAME: incomeReportBucket.bucketName, // Passando o nome do bucket
           BUCKET_NAME_HTML_TO_PDF: htmlToPdfBucket.bucketName,
+          FILES_EVENTS_TOPIC_ARN: filesTopic.topicArn,
         },
       }
     );
     this.filePollerHandler.addToRolePolicy(incomeReportBucketPolicy);
     this.filePollerHandler.addToRolePolicy(htmlToPdfBucketPolicy);
+    filesTopic.addSubscription(new subs.LambdaSubscription(this.filePollerHandler))
 
     // Criando a função Lambda incomeReportHandler
     this.incomeReportHandler = new lambdaNodeJS.NodejsFunction(
@@ -154,13 +163,14 @@ export class IncomeReportAppStack extends cdk.Stack {
         },
         layers: [incomeReportLayer],
         environment: {
-          BUCKET_NAME: incomeReportBucket.bucketName,
           BUCKET_NAME_HTML_TO_PDF: htmlToPdfBucket.bucketName,
+          FILES_EVENTS_TOPIC_ARN: filesTopic.topicArn,
         },
       }
     );
     this.htmlToPdfHandler.addToRolePolicy(incomeReportBucketPolicy);
     this.htmlToPdfHandler.addToRolePolicy(htmlToPdfBucketPolicy);
     htmlToPdfBucket.grantPut(this.htmlToPdfHandler);
+    filesTopic.grantPublish(this.htmlToPdfHandler)
   }
 }

@@ -39,18 +39,14 @@ export async function handler(
 
     try {
       // Verifica se o documento já existe no S3
-      const document = await getDocument(documentId, year);
+      const documentExists = await checkDocumentExists(documentId, year);
 
-      if (document) {
-        // Retorna o arquivo encontrado no S3
+      if (documentExists) {
+        // Retorna a URL assinada para o arquivo encontrado no S3
+        const signedUrl = generateSignedUrl(documentId, year);
         return {
           statusCode: 200,
-          headers: {
-            "Content-Type": "application/pdf", // Definindo o tipo de conteúdo do PDF
-            "Content-Disposition": `attachment; filename="${documentId}-${year}.pdf"`, // Força o download do arquivo
-          },
-          body: document.toString('base64'), // Converte o buffer do arquivo em base64 para envio via API Gateway
-          isBase64Encoded: true, // Indica que o corpo da resposta está codificado em base64
+          body: JSON.stringify({ url: signedUrl }),
         };
       } else {
         // Se o documento não existir, chama a API externa
@@ -64,13 +60,18 @@ export async function handler(
 
         console.log("API externa chamada com sucesso:", response2.data);
 
-        // Retorna uma mensagem de que o documento está sendo criado
-        return {
-          statusCode: 202,
-          body: JSON.stringify({
-            message: "Document is being generated. Please try again later.",
-          }),
-        };
+        // Polling to check if the document has been created in S3
+        for (let i = 0; i < 5; i++) {
+          const documentExists = await checkDocumentExists(documentId, year);
+          if (documentExists) {
+            const signedUrl = generateSignedUrl(documentId, year);
+            return {
+              statusCode: 200,
+              body: JSON.stringify({ url: signedUrl }),
+            };
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before checking again
+        }
       }
     } catch (error) {
       console.error("Error processing the request:", error);
@@ -87,25 +88,33 @@ export async function handler(
   };
 }
 
-async function getDocument(documentId: number, year: number): Promise<Buffer | null> {
+async function checkDocumentExists(documentId: number, year: number): Promise<boolean> {
   try {
-    const response = await s3
-      .getObject({
+    await s3
+      .headObject({
         Bucket: bucketName,
         Key: `${documentId}-${year}.pdf`,
       })
       .promise();
 
-    console.log("Document retrieved from S3:", response);
-
-    return response.Body as Buffer;
+    console.log(`Document ${documentId}-${year}.pdf exists in S3.`);
+    return true;
   } catch (error) {
-    if ((error as any).code === "NoSuchKey") {
+    if ((error as any).code === "NotFound") {
       console.log(`Document ${documentId}-${year}.pdf not found in S3.`);
-      return null; // Documento não encontrado
+      return false;
     } else {
-      console.error("Error getting document from S3:", error);
-      throw error; // Lança erro se for outra exceção
+      console.error("Error checking document in S3:", error);
+      throw error;
     }
   }
+}
+
+function generateSignedUrl(documentId: number, year: number): string {
+  const params = {
+    Bucket: bucketName,
+    Key: `${documentId}-${year}.pdf`,
+    Expires: 60 * 5, // URL válida por 5 minutos
+  };
+  return s3.getSignedUrl('getObject', params);
 }
