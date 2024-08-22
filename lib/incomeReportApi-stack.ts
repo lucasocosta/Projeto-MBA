@@ -7,6 +7,9 @@ import { Construct } from "constructs";
 interface IncomeReportApiStackProps extends cdk.StackProps {
   filePollerHandler: lambdaNodeJS.NodejsFunction;
   incomeReportHandler: lambdaNodeJS.NodejsFunction;
+  balanceHandler: lambdaNodeJS.NodejsFunction;
+  htmlToPdfHandler: lambdaNodeJS.NodejsFunction;
+
 }
 
 export class IncomeReportApiStack extends cdk.Stack {
@@ -41,12 +44,23 @@ export class IncomeReportApiStack extends cdk.Stack {
     const incomeReportHandlerIntegration = new apigateway.LambdaIntegration(
       props.incomeReportHandler
     );
+    const balanceHandlerIntegration = new apigateway.LambdaIntegration(
+      props.balanceHandler
+    );
+    const htmlToPdfHandlerIntegration = new apigateway.LambdaIntegration(
+      props.htmlToPdfHandler
+    );
+
 
 
     const incomeReportHandlerResource = api.root.addResource("lambda1");
     const filePolerHandlerResource = api.root.addResource("lambda2");
+    const balanceResource = api.root.addResource("balance");
+    const htmlToPdfResource = api.root.addResource("htmlToPdf");
     incomeReportHandlerResource.addMethod("GET", incomeReportHandlerIntegration);
     filePolerHandlerResource.addMethod("GET", filePollerHandlerIntegration);
+    balanceResource.addMethod("GET", balanceHandlerIntegration);
+    htmlToPdfResource.addMethod("POST", htmlToPdfHandlerIntegration);
     
   }
 }

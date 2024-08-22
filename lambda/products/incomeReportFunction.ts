@@ -22,8 +22,8 @@ export async function handler(
   );
 
   // Recebendo os query params
-  const documentId = event.queryStringParameters?.document_id;
-  const year = event.queryStringParameters?.year;
+  const documentId = parseInt(event.queryStringParameters?.document_id ?? '0');
+  const year = parseInt(event.queryStringParameters?.year ?? '0');
 
   if (event.resource === "/lambda1") {
     console.log(`${method} lambda1`);
@@ -54,10 +54,15 @@ export async function handler(
         };
       } else {
         // Se o documento não existir, chama a API externa
-        const apiUrl = `https://mbalucas.requestcatcher.com/test?document_id=${documentId}&year=${year}`;
+        const apiUrl = `https://vd27ypep8i.execute-api.us-east-1.amazonaws.com/prod/balance?document_id=${documentId}&year=${year}`;
         const response = await axios.get(apiUrl);
 
         console.log("API externa chamada com sucesso:", response.data);
+
+        const apiUrl2 = `https://vd27ypep8i.execute-api.us-east-1.amazonaws.com/prod/htmlToPdf`;
+        const response2 = await axios.post(apiUrl2, { documentId, year, balance: response.data.balance });
+
+        console.log("API externa chamada com sucesso:", response2.data);
 
         // Retorna uma mensagem de que o documento está sendo criado
         return {
@@ -82,7 +87,7 @@ export async function handler(
   };
 }
 
-async function getDocument(documentId: string, year: string): Promise<Buffer | null> {
+async function getDocument(documentId: number, year: number): Promise<Buffer | null> {
   try {
     const response = await s3
       .getObject({

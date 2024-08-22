@@ -29,6 +29,7 @@
     "aws-xray-sdk": "^3.5.3",
     "axios": "^1.7.3",
     "constructs": "^10.0.0",
+    "pdf-lib": "^1.17.1",
     "source-map-support": "^0.5.21"
   }
 }

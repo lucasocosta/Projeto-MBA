@@ -9,6 +9,8 @@ import * as iam from "aws-cdk-lib/aws-iam"
 export class IncomeReportAppStack extends cdk.Stack {
   readonly filePollerHandler: lambdaNodeJS.NodejsFunction;
   readonly incomeReportHandler: lambdaNodeJS.NodejsFunction;
+  readonly balanceHandler: lambdaNodeJS.NodejsFunction;
+  readonly htmlToPdfHandler: lambdaNodeJS.NodejsFunction;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -117,5 +119,48 @@ export class IncomeReportAppStack extends cdk.Stack {
     );
     this.incomeReportHandler.addToRolePolicy(incomeReportBucketPolicy);
     this.incomeReportHandler.addToRolePolicy(htmlToPdfBucketPolicy);
+
+    this.balanceHandler = new lambdaNodeJS.NodejsFunction(
+      this,
+      "balanceFunction",
+      {
+        functionName: "balanceFunction",
+        entry: "lambda/products/balanceFunction.ts",
+        handler: "handler",
+        memorySize: 128, // Aumentado de 128 MB para 256 MB
+        timeout: cdk.Duration.seconds(10), // Aumentado de 5 para 10 segundos
+        bundling: {
+          minify: true,
+          sourceMap: false,
+        },
+        layers: [incomeReportLayer],
+      }
+    );
+    this.balanceHandler.addToRolePolicy(incomeReportBucketPolicy);
+    this.balanceHandler.addToRolePolicy(htmlToPdfBucketPolicy);
+
+    this.htmlToPdfHandler = new lambdaNodeJS.NodejsFunction(
+      this,
+      "htmlToPdfFunction",
+      {
+        functionName: "htmlToPdfFunction",
+        entry: "lambda/products/htmlToPdfFunction.ts",
+        handler: "handler",
+        memorySize: 512, // Aumentado de 128 MB para 256 MB
+        timeout: cdk.Duration.seconds(60), // Aumentado de 5 para 10 segundos
+        bundling: {
+          minify: true,
+          sourceMap: false,
+        },
+        layers: [incomeReportLayer],
+        environment: {
+          BUCKET_NAME: incomeReportBucket.bucketName,
+          BUCKET_NAME_HTML_TO_PDF: htmlToPdfBucket.bucketName,
+        },
+      }
+    );
+    this.htmlToPdfHandler.addToRolePolicy(incomeReportBucketPolicy);
+    this.htmlToPdfHandler.addToRolePolicy(htmlToPdfBucketPolicy);
+    htmlToPdfBucket.grantPut(this.htmlToPdfHandler);
   }
 }

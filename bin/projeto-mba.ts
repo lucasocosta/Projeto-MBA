@@ -30,7 +30,9 @@ const incomeReportApiStack: IncomeReportApiStack = new IncomeReportApiStack(app,
   tags: tags,
   env: env,
   filePollerHandler: incomeReportAppStack.filePollerHandler,
-  incomeReportHandler: incomeReportAppStack.incomeReportHandler
+  incomeReportHandler: incomeReportAppStack.incomeReportHandler,
+  balanceHandler: incomeReportAppStack.balanceHandler,
+  htmlToPdfHandler: incomeReportAppStack.htmlToPdfHandler
 });
 
 incomeReportApiStack.addDependency(incomeReportAppStack);
