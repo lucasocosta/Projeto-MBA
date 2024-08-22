@@ -9,6 +9,7 @@ interface IncomeReportApiStackProps extends cdk.StackProps {
   incomeReportHandler: lambdaNodeJS.NodejsFunction;
   balanceHandler: lambdaNodeJS.NodejsFunction;
   htmlToPdfHandler: lambdaNodeJS.NodejsFunction;
+  htmlHandler: lambdaNodeJS.NodejsFunction;
 
 }
 
@@ -50,17 +51,21 @@ export class IncomeReportApiStack extends cdk.Stack {
     const htmlToPdfHandlerIntegration = new apigateway.LambdaIntegration(
       props.htmlToPdfHandler
     );
-
+    const htmlIntegration = new apigateway.LambdaIntegration(
+      props.htmlHandler
+    );
 
 
     const incomeReportHandlerResource = api.root.addResource("lambda1");
     const filePolerHandlerResource = api.root.addResource("lambda2");
     const balanceResource = api.root.addResource("balance");
     const htmlToPdfResource = api.root.addResource("htmlToPdf");
+    const htmlResource = api.root.addResource("html");
     incomeReportHandlerResource.addMethod("GET", incomeReportHandlerIntegration);
     filePolerHandlerResource.addMethod("GET", filePollerHandlerIntegration);
     balanceResource.addMethod("GET", balanceHandlerIntegration);
     htmlToPdfResource.addMethod("POST", htmlToPdfHandlerIntegration);
-    
+    htmlResource.addMethod("GET", htmlIntegration);
+
   }
 }

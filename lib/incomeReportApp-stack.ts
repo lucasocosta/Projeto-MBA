@@ -13,6 +13,7 @@ export class IncomeReportAppStack extends cdk.Stack {
   readonly incomeReportHandler: lambdaNodeJS.NodejsFunction;
   readonly balanceHandler: lambdaNodeJS.NodejsFunction;
   readonly htmlToPdfHandler: lambdaNodeJS.NodejsFunction;
+  readonly htmlHandler: lambdaNodeJS.NodejsFunction;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -172,5 +173,22 @@ export class IncomeReportAppStack extends cdk.Stack {
     this.htmlToPdfHandler.addToRolePolicy(htmlToPdfBucketPolicy);
     htmlToPdfBucket.grantPut(this.htmlToPdfHandler);
     filesTopic.grantPublish(this.htmlToPdfHandler)
+
+    this.htmlHandler = new lambdaNodeJS.NodejsFunction(
+      this,
+      "htmlFunction",
+      {
+        functionName: "htmlFunction",
+        entry: "lambda/products/htmlFunction.ts",
+        handler: "handler",
+        memorySize: 128, // Aumentado de 128 MB para 256 MB
+        timeout: cdk.Duration.seconds(10), // Aumentado de 5 para 10 segundos
+        bundling: {
+          minify: true,
+          sourceMap: false,
+        },
+        layers: [incomeReportLayer],
+      }
+    );
   }
 }
