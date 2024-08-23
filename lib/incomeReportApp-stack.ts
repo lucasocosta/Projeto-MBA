@@ -21,12 +21,14 @@ export class IncomeReportAppStack extends cdk.Stack {
     const incomeReportLayerArn = ssm.StringParameter.valueForStringParameter(this, "incomeReportLayerVersionArn");
     const incomeReportLayer = lambda.LayerVersion.fromLayerVersionArn(this, "incomeReportLayerVersionArn", incomeReportLayerArn);
 
+
+    // Create SNS topic
     const filesTopic = new sns.Topic(this, "FilesEventsTopic", {
       displayName: "Files events topic",
       topicName: "files-events"
    })
 
-    // Criando o bucket S3
+    // Creating buckets
     const incomeReportBucket = new s3.Bucket(this, "incomeReportBucket", {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
@@ -49,7 +51,7 @@ export class IncomeReportAppStack extends cdk.Stack {
       ],
     });
 
-    // Política de IAM para permitir que a Lambda acesse o bucket S3
+    // IAM policy to allow the Lambda function to interact with the S3 bucket
     const incomeReportBucketPolicy = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: [
@@ -80,7 +82,7 @@ export class IncomeReportAppStack extends cdk.Stack {
       ],
     });
 
-    // Criando a função Lambda filePollerHandler
+    // Creating the Lambdas
     this.filePollerHandler = new lambdaNodeJS.NodejsFunction(
       this,
       "filePollerFunction",
@@ -96,7 +98,7 @@ export class IncomeReportAppStack extends cdk.Stack {
         },
         layers: [incomeReportLayer],
         environment: {
-          BUCKET_NAME: incomeReportBucket.bucketName, // Passando o nome do bucket
+          BUCKET_NAME: incomeReportBucket.bucketName,
           BUCKET_NAME_HTML_TO_PDF: htmlToPdfBucket.bucketName,
           FILES_EVENTS_TOPIC_ARN: filesTopic.topicArn,
         },
@@ -106,7 +108,6 @@ export class IncomeReportAppStack extends cdk.Stack {
     this.filePollerHandler.addToRolePolicy(htmlToPdfBucketPolicy);
     filesTopic.addSubscription(new subs.LambdaSubscription(this.filePollerHandler))
 
-    // Criando a função Lambda incomeReportHandler
     this.incomeReportHandler = new lambdaNodeJS.NodejsFunction(
       this,
       "incomeReportFunction",
@@ -114,8 +115,8 @@ export class IncomeReportAppStack extends cdk.Stack {
         functionName: "incomeReportFunction",
         entry: "lambda/products/incomeReportFunction.ts",
         handler: "handler",
-        memorySize: 256, // Aumentado de 128 MB para 256 MB
-        timeout: cdk.Duration.seconds(10), // Aumentado de 5 para 10 segundos
+        memorySize: 256,
+        timeout: cdk.Duration.seconds(10),
         bundling: {
           minify: true,
           sourceMap: false,
@@ -137,8 +138,8 @@ export class IncomeReportAppStack extends cdk.Stack {
         functionName: "balanceFunction",
         entry: "lambda/products/balanceFunction.ts",
         handler: "handler",
-        memorySize: 128, // Aumentado de 128 MB para 256 MB
-        timeout: cdk.Duration.seconds(10), // Aumentado de 5 para 10 segundos
+        memorySize: 128,
+        timeout: cdk.Duration.seconds(10),
         bundling: {
           minify: true,
           sourceMap: false,
@@ -156,8 +157,8 @@ export class IncomeReportAppStack extends cdk.Stack {
         functionName: "htmlToPdfFunction",
         entry: "lambda/products/htmlToPdfFunction.ts",
         handler: "handler",
-        memorySize: 512, // Aumentado de 128 MB para 256 MB
-        timeout: cdk.Duration.seconds(60), // Aumentado de 5 para 10 segundos
+        memorySize: 512,
+        timeout: cdk.Duration.seconds(60),
         bundling: {
           minify: true,
           sourceMap: false,
@@ -181,8 +182,8 @@ export class IncomeReportAppStack extends cdk.Stack {
         functionName: "htmlFunction",
         entry: "lambda/products/htmlFunction.ts",
         handler: "handler",
-        memorySize: 128, // Aumentado de 128 MB para 256 MB
-        timeout: cdk.Duration.seconds(10), // Aumentado de 5 para 10 segundos
+        memorySize: 128,
+        timeout: cdk.Duration.seconds(10),
         bundling: {
           minify: true,
           sourceMap: false,

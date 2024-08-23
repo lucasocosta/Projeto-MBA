@@ -1,6 +1,9 @@
-# Welcome to your CDK TypeScript project
+# Project from XPe MBA - Solutions and Software Architecure
 
-This is a blank project for CDK development with TypeScript.
+
+This project simulates obtaining income report files obtained synchronously, however, with asynchronous generation.
+
+Test html page: https://vd27ypep8i.execute-api.us-east-1.amazonaws.com/prod/html
 
 The `cdk.json` file tells the CDK Toolkit how to execute your app.
 

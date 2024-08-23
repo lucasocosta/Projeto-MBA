@@ -23,16 +23,16 @@ export async function handler(
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Download PDF</title>
+            <title>Baixar PDF de imposto de renda</title>
         </head>
         <body>
-            <h2>Download PDF</h2>
+            <h2>Baixar PDF</h2>
         
-            <label for="documentId">Document ID:</label>
-            <input type="number" id="documentId" placeholder="Enter Document ID" required><br><br>
+            <label for="documentId">Id do documento:</label>
+            <input type="number" id="documentId" placeholder="Id do documento" required><br><br>
         
-            <label for="year">Year:</label>
-            <input type="number" id="year" placeholder="Enter Year" required><br><br>
+            <label for="year">Ano:</label>
+            <input type="number" id="year" placeholder="Coloque o ano" required><br><br>
         
             <button id="downloadBtn" disabled>Download PDF</button>
         
@@ -69,8 +69,7 @@ export async function handler(
                         alert('Please enter both Document ID and Year.');
                     }
                 });
-        
-                // Habilita o botão quando ambos os campos são preenchidos
+
                 document.querySelectorAll('input').forEach(input => {
                     input.addEventListener('input', () => {
                         const documentId = document.getElementById('documentId').value;

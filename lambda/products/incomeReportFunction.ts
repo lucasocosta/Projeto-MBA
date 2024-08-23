@@ -21,7 +21,7 @@ export async function handler(
     `API Gateway RequestId ${apiRequestId} - Lambda RequestId ${lambdaRequestId}`
   );
 
-  // Recebendo os query params
+  // Receives the document_id and year as query parameters
   const documentId = parseInt(event.queryStringParameters?.document_id ?? '0');
   const year = parseInt(event.queryStringParameters?.year ?? '0');
 
@@ -29,7 +29,7 @@ export async function handler(
     console.log(`${method} lambda1`);
     console.log(`document_id: ${documentId}, year: ${year}`);
 
-    // Verificando se os parâmetros foram fornecidos
+    // Verifies if the document_id and year are valid
     if (!documentId || !year) {
       return {
         statusCode: 400,
@@ -38,27 +38,25 @@ export async function handler(
     }
 
     try {
-      // Verifica se o documento já existe no S3
+      // Verifies if the document exists in S3
       const documentExists = await checkDocumentExists(documentId, year);
 
       if (documentExists) {
-        // Retorna a URL assinada para o arquivo encontrado no S3
+        // Returns the signed URL if the document exists
         const signedUrl = generateSignedUrl(documentId, year);
         return {
           statusCode: 200,
           body: JSON.stringify({ url: signedUrl }),
         };
       } else {
-        // Se o documento não existir, chama a API externa
-        const apiUrl = `https://vd27ypep8i.execute-api.us-east-1.amazonaws.com/prod/balance?document_id=${documentId}&year=${year}`;
-        const response = await axios.get(apiUrl);
+        // If the document does not exist, calls the external API to get the balance
+        const responseBalanceApi = await axios.get(`https://vd27ypep8i.execute-api.us-east-1.amazonaws.com/prod/balance?document_id=${documentId}&year=${year}`);
 
-        console.log("API externa chamada com sucesso:", response.data);
+        console.log("Balance API called with success:", responseBalanceApi.data);
 
-        const apiUrl2 = `https://vd27ypep8i.execute-api.us-east-1.amazonaws.com/prod/htmlToPdf`;
-        const response2 = await axios.post(apiUrl2, { documentId, year, balance: response.data.balance });
+        const responseHtmlToPdfApi = await axios.post('https://vd27ypep8i.execute-api.us-east-1.amazonaws.com/prod/htmlToPdf', { documentId, year, balance: responseBalanceApi.data.balance });
 
-        console.log("API externa chamada com sucesso:", response2.data);
+        console.log("HtmlToPDf API called with success:", responseHtmlToPdfApi.data);
 
         // Polling to check if the document has been created in S3
         for (let i = 0; i < 5; i++) {
@@ -114,7 +112,7 @@ function generateSignedUrl(documentId: number, year: number): string {
   const params = {
     Bucket: bucketName,
     Key: `${documentId}-${year}.pdf`,
-    Expires: 60 * 5, // URL válida por 5 minutos
+    Expires: 60 * 5, // Valid for 5 minutes
   };
   return s3.getSignedUrl('getObject', params);
 }

@@ -104,7 +104,7 @@ async function createPdfAndUploadToS3(body: Content, bucketName: string, destina
             font: timesRomanFont,
         });
 
-        page.drawText(`Document ID: ${documentId}\nYear: ${year}\nBalance: ${balance}`, {
+        page.drawText(`Id do documento: ${documentId}\nAno: ${year}\nSaldo do dia 31/12: R$ ${(balance/100).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, {
             x: 50,
             y: height - 6 * fontSize,
             size: fontSize / 2,
