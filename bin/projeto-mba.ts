@@ -8,11 +8,11 @@ import { IncomeReportApiStack } from "../lib/incomeReportApi-stack";
 const app = new cdk.App();
 const env: cdk.Environment = {
   account: "352268968433",
-  region: "us-east-1",
+  region: "us-west-2",
 };
 
 const tags = {
-  cost: "ECommerce",
+  cost: "MBA",
   team: "Lucas",
 };
 

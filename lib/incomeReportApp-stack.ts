@@ -37,7 +37,7 @@ export class IncomeReportAppStack extends cdk.Stack {
           enabled: true,
           expiration: cdk.Duration.days(1),
         },
-      ],
+      ], enforceSSL: true,
     });
 
     const htmlToPdfBucket = new s3.Bucket(this, "htmlToPdfBucket", {
@@ -48,7 +48,7 @@ export class IncomeReportAppStack extends cdk.Stack {
           enabled: true,
           expiration: cdk.Duration.days(1),
         },
-      ],
+      ], enforceSSL: true,
     });
 
     // IAM policy to allow the Lambda function to interact with the S3 bucket
