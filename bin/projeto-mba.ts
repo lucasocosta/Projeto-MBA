@@ -4,6 +4,7 @@ import * as cdk from "aws-cdk-lib";
 import { IncomeReportAppLayersStack } from "../lib/incomeReportAppLayers-stack";
 import { IncomeReportAppStack } from "../lib/incomeReportApp-stack";
 import { IncomeReportApiStack } from "../lib/incomeReportApi-stack";
+import { IncomeReportWSApiStack } from "../lib/incomeReportWSApi-stack";
 
 const app = new cdk.App();
 const env: cdk.Environment = {
@@ -36,5 +37,12 @@ const incomeReportApiStack: IncomeReportApiStack = new IncomeReportApiStack(app,
   htmlHandler: incomeReportAppStack.htmlHandler
 });
 
+const incomeReportWSApiStack: IncomeReportWSApiStack = new IncomeReportWSApiStack(app, "IncomeReportWSApi", {
+  tags: tags,
+  env: env,
+  verifyFileHandler: incomeReportAppStack.verifyFileHandler
+});
+
 incomeReportApiStack.addDependency(incomeReportAppStack);
+incomeReportAppStack.addDependency(incomeReportWSApiStack);
 incomeReportAppStack.addDependency(incomeReportAppLayersStack);

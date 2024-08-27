@@ -14,6 +14,7 @@ export class IncomeReportAppStack extends cdk.Stack {
   readonly balanceHandler: lambdaNodeJS.NodejsFunction;
   readonly htmlToPdfHandler: lambdaNodeJS.NodejsFunction;
   readonly htmlHandler: lambdaNodeJS.NodejsFunction;
+  readonly verifyFileHandler: lambdaNodeJS.NodejsFunction;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
