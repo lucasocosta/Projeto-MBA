@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: Projeto-MBA
+  annotations:
+    github.com/project-slug: lucasocosta/Projeto-MBA
+spec:
+  type: other
+  lifecycle: unknown
+  owner: guests
